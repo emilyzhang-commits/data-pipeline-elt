@@ -23,9 +23,11 @@ This project demonstrates a complete **Extract-Load-Transform (ELT)** data pipel
 
 ## Project Structure
 
+```
 data-pipeline-elt/
-├── data_pipeline_elt_analysis.ipynb # Main project notebook with all analysis
-├── README.md # Project documentation
+├── data_pipeline_elt_analysis.ipynb    # Main project notebook with all analysis
+├── README.md                           # Project documentation
+```
 
 ## Key Sections
 
