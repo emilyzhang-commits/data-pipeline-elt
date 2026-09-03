@@ -1,12 +1,6 @@
 # ELT Data Pipeline: Airbyte, Snowflake, and dbt
 
-An end-to-end ELT (Extract-Load-Transform) pipeline built to show how **Airbyte** can ingest genuinely different kinds of data sources into one **Snowflake** warehouse, with **dbt** handling all the transformation downstream:
-
-- **A self-owned, live source** — a Google Sheets survey I created and can update at any time, ingested via Airbyte's Google Sheets connector.
-- **An external, static source** — a CSV trading-books dataset (someone else's file, not something I control or can update), ingested via Airbyte's File connector.
-- **A third-party data share** — a public pricing dataset pulled directly from the Snowflake Marketplace, no ingestion pipeline needed at all, just a data share mounted into the account.
-
-Three different ingestion patterns, three different trust/update models, one unified warehouse — that's the actual point of the pipeline. dbt then builds staging and mart models on top, joining the trading data against the Marketplace pricing data into a fact table with basic profit analysis, and cleaning up the survey data into an analysis-ready view.
+This project builds an end-to-end ELT pipeline with Airbyte, Snowflake, and dbt. The real point of it is ingesting three genuinely different kinds of data sources into one warehouse: a Google Sheets survey I created myself and can update anytime, a static CSV file I don't control, and a Snowflake Marketplace data share that needs no ingestion pipeline at all since it's just mounted directly into the account. Airbyte handles the first two, the Marketplace handles the third, and dbt does all the transformation once everything lands in the warehouse: joining trading data against marketplace pricing into a fact table with profit analysis, and cleaning up the survey responses into something analysis-ready.
 
 ## Technologies Used
 
@@ -26,6 +20,7 @@ data-pipeline-elt/
 │   ├── dbt_project.yml
 │   ├── packages.yml / package-lock.yml
 │   ├── macros/generate_schema_name.sql
+│   ├── seeds/                          # public sample trading data (see below)
 │   └── models/
 │       ├── schema.yml                  # source definitions
 │       ├── survey/staging/transform_survey.sql
@@ -38,11 +33,13 @@ data-pipeline-elt/
 
 ## Data Sources
 
-- **Survey data**: a short class survey collected via Google Sheets, loaded through Airbyte's Google Sheets connector. **Not included in this repo** — the raw responses include real email addresses submitted by classmates, so the underlying data isn't republished here regardless of format; only aggregated results (counts, charts) appear in the notebook.
-- **Trading books**: a small synthetic buy/sell trading dataset (`TRADING_BOOKS`, `WEIGHTS_TABLE`) with fictional traders and prices. This is Snowflake's own public sample data from their [dbt + Snowflake pipelines guide](https://github.com/Snowflake-Labs/sfguide-deploying-pipelines-with-snowflake-and-dbt-labs/tree/main/dbt_project/seeds) — included here as `dbt/seeds/`.
-- **Stock & FX pricing**: `Snowflake Public Data (Free)`, a free dataset available directly in the Snowflake Marketplace (`STOCK_PRICE_TIMESERIES_PIT`, `FX_RATES_TIMESERIES_PIT`).
+Survey data comes from a short class survey collected through Google Sheets. It's not included in this repo. The raw responses have real email addresses submitted by classmates, so that data doesn't get republished here no matter the format. Only aggregated results like counts and charts show up in the notebook.
 
-The trading/stock/FX side of this pipeline is genuinely reproducible with the seed data included here. The survey side isn't, and shouldn't be — the dbt model and notebook still show the full transformation logic and preserved analysis results even without the raw responses.
+The trading books dataset (`TRADING_BOOKS`, `WEIGHTS_TABLE`) is small and synthetic, fictional traders and prices. It's actually Snowflake's own public sample data from their [dbt + Snowflake pipelines guide](https://github.com/Snowflake-Labs/sfguide-deploying-pipelines-with-snowflake-and-dbt-labs/tree/main/dbt_project/seeds), so it's included here under `dbt/seeds/`.
+
+Stock and FX pricing comes from `Snowflake Public Data (Free)`, a free dataset available directly in the Snowflake Marketplace (`STOCK_PRICE_TIMESERIES_PIT`, `FX_RATES_TIMESERIES_PIT`).
+
+Because of this, the trading/stock/FX side of the pipeline is genuinely reproducible with the seed data included here. The survey side isn't, and shouldn't be, but the dbt model and notebook still show the full transformation logic and preserved results even without the raw responses.
 
 ## Pipeline Sections
 
@@ -56,23 +53,25 @@ The trading/stock/FX side of this pipeline is genuinely reproducible with the se
 
 ## How to Run
 
-This isn't a one-command-runnable pipeline, since it depends on a personal Airbyte workspace and Snowflake account with data already loaded — but the pieces are:
+This isn't a one-command pipeline. It depends on a personal Airbyte workspace and Snowflake account with data already loaded. Here's what's involved:
 
 1. Create free trial accounts on [Airbyte](https://airbyte.com/) and [Snowflake](https://www.snowflake.com/en/).
 2. Set up the warehouse/database/role/schema SQL shown in the notebook.
-3. Configure Airbyte connections: a CSV/File source pointed at `dbt/seeds/trading_books.csv` and `weights_table.csv` (included here), destined for Snowflake. (The survey side needs your own Google Sheet — see note above.)
+3. Configure an Airbyte CSV/File connection pointed at `dbt/seeds/trading_books.csv` and `weights_table.csv` (included here), destined for Snowflake. The survey side needs your own Google Sheet (see note above).
 4. `pip install -r requirements.txt`
 5. Install dbt, point `~/.dbt/profiles.yml` at your Snowflake account, and copy the `dbt/` folder's contents into your dbt project directory.
-6. `dbt run` to build the staging and mart models, then open `data_pipeline_elt_analysis.ipynb` to see the analysis — cell outputs are preserved from the original run, so results are visible without rerunning.
+6. `dbt run` to build the staging and mart models, then open `data_pipeline_elt_analysis.ipynb` to see the analysis. Cell outputs are preserved from the original run, so results are visible without rerunning.
 
-Either way: the code and SQL genuinely ran and the outputs shown are real results, not fabricated — but this notebook isn't meant to be re-executed top-to-bottom in one click today, since that needs the Airbyte/Snowflake setup redone from scratch.
+The code and SQL genuinely ran, and the outputs shown are real results, not fabricated. But this notebook isn't meant to be re-executed top to bottom in one click today, since that needs the Airbyte/Snowflake setup redone from scratch.
 
 ## Key Insights & Learnings
 
-- **Heterogeneous ingestion, one architecture**: a live self-owned source (Google Sheets), a static external file (CSV), and a zero-ingestion data share (Snowflake Marketplace) all land in the same warehouse through the same Airbyte → Snowflake → dbt pattern — the pipeline doesn't care where the data came from once it's loaded.
-- **ELT vs. ETL**: loading raw data first and transforming it inside the warehouse (via dbt) instead of transforming before loading, which keeps raw data available and makes transformations version-controlled and testable.
-- **dbt's staging → marts layering**: staging views do light cleanup (types, naming, filtering to valid records) while mart tables hold business-logic aggregates meant for downstream analysis.
-- **Joining self-referencing tables**: pairing up `BUY`/`SELL` rows from the same `TRADING_BOOKS` table by trader and date to reconstruct individual trades.
-- **Blending owned, external, and shared data**: joining a private (well, self-generated) trading dataset against a Snowflake Marketplace data share in dbt via `source()` references, with no custom ingestion code needed for the marketplace side.
+The main one: a live self-owned source, a static external file, and a zero-ingestion data share all land in the same warehouse through the same Airbyte-to-Snowflake-to-dbt pattern. Once the data is loaded, the pipeline doesn't care where it came from.
+
+A few other things this project drove home:
+
+- **ELT vs. ETL.** Loading raw data first and transforming it inside the warehouse with dbt, instead of transforming before loading. Keeps raw data available and makes transformations version-controlled and testable.
+- **dbt's staging-to-marts layering.** Staging views do light cleanup (types, naming, filtering to valid records), while mart tables hold the business-logic aggregates meant for downstream analysis.
+- **Joining self-referencing tables.** Pairing up `BUY`/`SELL` rows from the same `TRADING_BOOKS` table by trader and date to reconstruct individual trades.
 
 Last Updated: 2026-09-03
