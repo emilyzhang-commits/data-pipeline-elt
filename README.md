@@ -4,7 +4,7 @@ This project builds an end-to-end ELT pipeline with Airbyte, Snowflake, and dbt.
 
 The real point of it is ingesting three genuinely different kinds of data sources into one warehouse:
 
-1. A Google Sheets survey I created myself and can update anytime.
+1. A class survey, recorded live in a Google Sheet as responses come in.
 2. A static CSV file I don't control.
 3. A Snowflake Marketplace data share that needs no ingestion pipeline at all, since it's just mounted directly into the account.
 
@@ -74,7 +74,7 @@ The code and SQL genuinely ran, and the outputs shown are real results, not fabr
 
 ## Key Insights & Learnings
 
-The main one: a live self-owned source, a static external file, and a zero-ingestion data share all land in the same warehouse through the same Airbyte-to-Snowflake-to-dbt pattern. Once the data is loaded, the pipeline doesn't care where it came from.
+The main one: a live spreadsheet, a static external file, and a zero-ingestion data share all land in the same warehouse through the same Airbyte-to-Snowflake-to-dbt pattern. Once the data is loaded, the pipeline doesn't care where it came from.
 
 A few other things this project drove home:
 
