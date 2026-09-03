@@ -1,6 +1,14 @@
 # ELT Data Pipeline: Airbyte, Snowflake, and dbt
 
-This project builds an end-to-end ELT pipeline with Airbyte, Snowflake, and dbt. The real point of it is ingesting three genuinely different kinds of data sources into one warehouse: a Google Sheets survey I created myself and can update anytime, a static CSV file I don't control, and a Snowflake Marketplace data share that needs no ingestion pipeline at all since it's just mounted directly into the account. Airbyte handles the first two, the Marketplace handles the third, and dbt does all the transformation once everything lands in the warehouse: joining trading data against marketplace pricing into a fact table with profit analysis, and cleaning up the survey responses into something analysis-ready.
+This project builds an end-to-end ELT pipeline with Airbyte, Snowflake, and dbt.
+
+The real point of it is ingesting three genuinely different kinds of data sources into one warehouse:
+
+1. A Google Sheets survey I created myself and can update anytime.
+2. A static CSV file I don't control.
+3. A Snowflake Marketplace data share that needs no ingestion pipeline at all, since it's just mounted directly into the account.
+
+Airbyte handles the first two, the Marketplace handles the third. dbt does the transformation once everything lands in the warehouse: joining trading data against marketplace pricing into a fact table with profit analysis, and cleaning up the survey responses into something analysis-ready.
 
 ## Technologies Used
 
